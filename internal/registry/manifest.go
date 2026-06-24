@@ -8,14 +8,20 @@ import (
 	"bgy-ai/internal/provider"
 )
 
+type ManifestSign struct {
+	Command string `yaml:"command"`
+}
+
 type Manifest struct {
-	Name        string            `yaml:"name"`
-	Description string            `yaml:"description"`
-	Type        string            `yaml:"type"`
-	URL         string            `yaml:"url,omitempty"`
-	BaseURL     string            `yaml:"base_url,omitempty"`
-	Headers     map[string]string `yaml:"headers,omitempty"`
-	Tools       []ManifestTool    `yaml:"tools,omitempty"`
+	Name          string            `yaml:"name"`
+	Description   string            `yaml:"description"`
+	Type          string            `yaml:"type"`
+	URL           string            `yaml:"url,omitempty"`
+	BaseURL       string            `yaml:"base_url,omitempty"`
+	Headers       map[string]string `yaml:"headers,omitempty"`
+	HeaderCommand string            `yaml:"header_command,omitempty"`
+	Shell         string            `yaml:"shell,omitempty"`
+	Tools         []ManifestTool    `yaml:"tools,omitempty"`
 }
 
 type ManifestTool struct {
@@ -26,6 +32,7 @@ type ManifestTool struct {
 	Parameters   map[string]*provider.PropDef `yaml:"parameters,omitempty"`
 	BodyTemplate string                       `yaml:"body_template,omitempty"`
 	ResponsePath string                       `yaml:"response_path,omitempty"`
+	Command      string                       `yaml:"command,omitempty"`
 }
 
 func LoadManifest(path string) (*provider.ServerConfig, error) {
@@ -40,12 +47,14 @@ func LoadManifest(path string) (*provider.ServerConfig, error) {
 	}
 
 	cfg := &provider.ServerConfig{
-		Name:        m.Name,
-		Description: m.Description,
-		Type:        m.Type,
-		URL:         m.URL,
-		BaseURL:     m.BaseURL,
-		Headers:     m.Headers,
+		Name:          m.Name,
+		Description:   m.Description,
+		Type:          m.Type,
+		URL:           m.URL,
+		BaseURL:       m.BaseURL,
+		Headers:       m.Headers,
+		HeaderCommand: m.HeaderCommand,
+		Shell:         m.Shell,
 	}
 
 	if m.Type == "" {
@@ -61,6 +70,7 @@ func LoadManifest(path string) (*provider.ServerConfig, error) {
 			Params:       t.Parameters,
 			BodyTemplate: t.BodyTemplate,
 			ResponsePath: t.ResponsePath,
+			Command:      t.Command,
 		}
 		if tool.Method == "" {
 			tool.Method = "GET"

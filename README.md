@@ -13,6 +13,7 @@ A lightweight CLI gateway that turns MCP (Model Context Protocol) and REST/HTTP 
 - **Response extraction** — `response_path` dot-path to pull values from JSON responses
 - **MCP session persistence** — sessions cached locally, re-initialized on expiry
 - **Multiple output formats** — plain text (default) or structured JSON
+- **External scripting** — shell commands can generate per-request headers or take over full HTTP request building
 - **Minimal dependencies** — only Cobra and yaml.v3; zero runtime overhead
 
 ## Installation
@@ -170,6 +171,65 @@ response_path: results.*.frames.0.data.values.2
 ### Time Defaults
 
 The values `now`, `now-1h`, `now-6h`, and `now-24h` are automatically replaced with Unix millisecond timestamps at runtime.
+
+### Per-Request Headers via External Command
+
+For APIs that require dynamic per-request headers (signatures, tokens, nonces), use `header_command`:
+
+```yaml
+name: my-api
+type: http
+base_url: https://api.example.com
+headers:
+  accept: application/json
+header_command: "python3 /path/to/sign.py"
+tools:
+  - name: search
+    method: GET
+    path: /v1/search
+    parameters:
+      keyword:
+        type: string
+```
+
+The command receives request context as stdin JSON and must output header key-value pairs as stdout JSON:
+
+```
+stdin:  {"method":"GET","path":"/v1/search?keyword=test&timestamp=1782...","timestamp":"1782...","body":""}
+stdout: {"x-nonce":"abc123","x-signature":"7f3a...","x-timestamp":"1782..."}
+```
+
+### Full Request Control via External Command
+
+When a tool needs complete control over URL construction, headers, and body, use `command` at the tool level:
+
+```yaml
+tools:
+  - name: complex-api
+    description: Advanced API call
+    command: "python3 /path/to/build-request.py"
+    parameters:
+      keyword:
+        type: string
+    response_path: data
+```
+
+The script receives all CLI parameters plus service context, and returns the complete request specification:
+
+```
+stdin:  {"method":"GET","path_template":"/v1/search","base_url":"https://...","params":{"keyword":"test"},"body_template":"...","timestamp_ms":"1782..."}
+stdout: {"url":"https://.../v1/search?keyword=test","headers":{"x-nonce":"..."},"body":""}
+```
+
+Tool-level `command` takes priority over `method`/`path`/`body_template` — the script handles everything.
+
+### Shell
+
+Commands (`header_command`, `command`) run through a shell. Default is auto-detected: `sh -c` on Linux/macOS, `cmd /c` on Windows. Override per service:
+
+```yaml
+shell: "bash -c"
+```
 
 ## CLI Reference
 
