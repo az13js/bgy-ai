@@ -249,31 +249,6 @@ Flags:
   -v, --verbose          Enable debug logging
 ```
 
-## Project Structure
-
-```
-bgy-ai/
-├── cmd/bgyai/main.go              # Entrypoint
-└── internal/
-    ├── cli/                       # Cobra CLI: root, builder, executor
-    │   ├── root.go
-    │   ├── builder.go
-    │   └── executor.go
-    ├── converter/
-    │   └── schema.go              # JSON Schema → CLI flags
-    ├── provider/                  # Service provider implementations
-    │   ├── interface.go           # ToolProvider interface
-    │   ├── types.go               # ToolDef, CallResult, etc.
-    │   ├── factory.go             # Provider dispatcher
-    │   ├── http.go                # HTTP/REST provider
-    │   └── mcp.go                 # MCP JSON-RPC provider
-    ├── registry/                  # Config loading & service registry
-    │   ├── loader.go              # Registry: Load/Reload/Get/Close
-    │   └── manifest.go            # YAML manifest parsing
-    └── renderer/
-        └── renderer.go            # Text and JSON output formatting
-```
-
 ## License
 
 MIT — see [LICENSE](LICENSE) for details.
