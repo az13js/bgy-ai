@@ -162,7 +162,7 @@ func (p *MCPProvider) sendNotification(ctx context.Context, method string) error
 
 func (p *MCPProvider) setHeaders(req *http.Request) {
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json, text/event-stream")
+	req.Header.Set("Accept", "text/event-stream, application/json")
 	if p.sessionID != "" {
 		req.Header.Set("Mcp-Session-Id", p.sessionID)
 	}
@@ -279,7 +279,7 @@ func extractJSON(raw string) string {
 
 type jsonrpcRequest struct {
 	JSONRPC string `json:"jsonrpc"`
-	ID      int    `json:"id,omitempty"`
+	ID      any    `json:"id,omitempty"`
 	Method  string `json:"method"`
 	Params  any    `json:"params,omitempty"`
 }
