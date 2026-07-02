@@ -82,11 +82,12 @@ shell: "bash -c"          # unix-specific
 ## Key Conventions
 
 - **Tool name → CLI name**: Underscores replaced with hyphens (`search_wiki` → `search-wiki`)
-- **CLI flag → param name**: Hyphens in flag names converted back to underscores (`--my-flag` → `my_flag`)
+- **CLI flag → param name**: Flag names use kebab-case (`--my-flag`, `--userid`), but parameter keys in code preserve the original YAML name exactly (`userId` stays `userId`). Hyphens are converted back to underscores only as a fallback when no `ParamName` is set.
 - **Provider type defaults**: empty/omitted → `mcp`; `streamable-http` also routes to MCP
 - **HTTP method defaults**: empty/omitted → `GET`
 - **Time templates**: `now`, `now-1h`, `now-6h`, `now-24h` are resolved to Unix millisecond timestamps automatically in HTTP provider
 - **Required params**: Parameters without a `default` value in YAML are marked required on the CLI
+- **Body template placeholders**: Unresolved `{{.key}}` placeholders (params not provided by user) are replaced with `null` to produce valid JSON. `body_template` works with any HTTP method (POST/PATCH/PUT).
 
 ## Prohibited
 

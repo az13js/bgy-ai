@@ -9,7 +9,7 @@ A lightweight CLI gateway that turns MCP (Model Context Protocol) and REST/HTTP 
 - **Zero-code service integration** — add a YAML file, get a CLI subcommand
 - **Dual protocol support** — MCP (JSON-RPC 2.0 + SSE) and plain HTTP/REST
 - **Auto-generated CLI** — tools and their parameters automatically become `--flag-name` flags
-- **Template variables** — path and POST body support `{{.param}}` substitution
+- **Template variables** — path and request body (POST/PATCH/PUT) support `{{.param}}` substitution
 - **Response extraction** — `response_path` dot-path to pull values from JSON responses
 - **MCP session persistence** — sessions cached locally, re-initialized on expiry
 - **Multiple output formats** — plain text (default) or structured JSON
@@ -146,14 +146,16 @@ Parameters used in the path are **automatically excluded** from query strings.
 
 ### POST Body Templates
 
-Use `{{.param_name}}` in JSON body templates:
+Use `{{.param_name}}` in JSON body templates for POST, PATCH, or PUT requests:
 
 ```yaml
+method: POST
+path: /api/resources
 body_template: |
-  {"query": "{{.keyword}}", "limit": {{.limit}}}
+  {"query": "{{.keyword}}", "limit": {{.limit}}, "tags": {{.tags}}}
 ```
 
-Values are JSON-encoded and the body is validated before sending.
+Values are JSON-encoded and the body is validated before sending. Any unresolved `{{.param}}` placeholders are replaced with `null` to produce valid JSON — this allows optional fields in PATCH requests.
 
 ### Response Path
 
