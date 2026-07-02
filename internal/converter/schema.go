@@ -33,7 +33,7 @@ func Convert(tool provider.ToolDef) ([]Flag, error) {
 	for name, prop := range schema.Properties {
 		flag := Flag{
 			Long:        toFlagName(name),
-			Description: prop.Description,
+			Description: stripBackticks(prop.Description),
 			Required:    required[name],
 			Enum:        prop.Enum,
 			ParamName:   name,
@@ -113,4 +113,8 @@ func mapDefault(prop *provider.PropDef) string {
 		return ""
 	}
 	return fmt.Sprintf("%v", prop.Default)
+}
+
+func stripBackticks(s string) string {
+	return strings.ReplaceAll(s, "`", "'")
 }
