@@ -3,11 +3,14 @@
 ## Build & Run
 
 ```
-go build -o bgy-ai ./cmd/bgyai/
+go build -o bgy-ai ./cmd/bgyai/    # dev build
+go build -ldflags="-s -w" -o bgy-ai.exe ./cmd/bgyai/   # Windows distributable (stripped)
 go vet ./...
 ```
 
 No test framework, linter, formatter, or CI are configured. `go test ./...` runs unit tests in `converter`, `provider`, and `registry` packages.
+
+**Network**: If `proxy.golang.org` or GitHub access fails with "connection reset", use `GOPROXY=https://goproxy.cn,direct`.
 
 ## Architecture
 
