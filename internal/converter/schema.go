@@ -15,6 +15,7 @@ type Flag struct {
 	Required    bool
 	Default     string
 	Enum        []string
+	ParamName   string // original parameter name (preserves case)
 }
 
 func Convert(tool provider.ToolDef) ([]Flag, error) {
@@ -35,6 +36,7 @@ func Convert(tool provider.ToolDef) ([]Flag, error) {
 			Description: prop.Description,
 			Required:    required[name],
 			Enum:        prop.Enum,
+			ParamName:   name,
 		}
 
 		flag.Type = mapPropType(prop)

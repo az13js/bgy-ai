@@ -24,24 +24,28 @@ func executeServerTool(entry *registry.ServerEntry, tool provider.ToolDef) func(
 
 		for _, flag := range flags {
 			seen[flag.Long] = true
+			key := flag.ParamName
+			if key == "" {
+				key = flagKey(flag.Long)
+			}
 			switch flag.Type {
 			case "int":
 				val, _ := cmd.Flags().GetInt(flag.Long)
 				if val != 0 || flag.Default != "" {
-					params[flagKey(flag.Long)] = val
+					params[key] = val
 				}
 			case "bool":
 				val, _ := cmd.Flags().GetBool(flag.Long)
-				params[flagKey(flag.Long)] = val
+				params[key] = val
 			case "stringSlice":
 				val, _ := cmd.Flags().GetStringSlice(flag.Long)
 				if len(val) > 0 {
-					params[flagKey(flag.Long)] = val
+					params[key] = val
 				}
 			default:
 				val, _ := cmd.Flags().GetString(flag.Long)
 				if val != "" {
-					params[flagKey(flag.Long)] = val
+					params[key] = val
 				}
 			}
 		}
