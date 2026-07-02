@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -75,12 +76,12 @@ func (p *HTTPProvider) CallTool(ctx context.Context, name string, args map[strin
 	}
 
 	if tool.BodyTemplate != "" {
-		return p.callWithBody(ctx, tool, args)
+		return p.callWithBody(ctx, tool, method, args)
 	}
 	return p.callWithQueryParams(ctx, tool, method, args)
 }
 
-func (p *HTTPProvider) callWithBody(ctx context.Context, tool *ToolDef, args map[string]any) (*CallResult, error) {
+func (p *HTTPProvider) callWithBody(ctx context.Context, tool *ToolDef, method string, args map[string]any) (*CallResult, error) {
 	bodyStr, err := p.buildBody(tool.BodyTemplate, args)
 	if err != nil {
 		return nil, fmt.Errorf("build body: %w", err)
@@ -88,7 +89,7 @@ func (p *HTTPProvider) callWithBody(ctx context.Context, tool *ToolDef, args map
 
 	path := p.buildPath(tool.Path, args)
 	reqURL := p.baseURL + "/" + strings.TrimLeft(path, "/")
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL, strings.NewReader(bodyStr))
+	httpReq, err := http.NewRequestWithContext(ctx, method, reqURL, strings.NewReader(bodyStr))
 	if err != nil {
 		return nil, err
 	}
@@ -98,12 +99,12 @@ func (p *HTTPProvider) callWithBody(ctx context.Context, tool *ToolDef, args map
 	}
 
 	if p.headerCommand != "" {
-		p.applySigning(httpReq, http.MethodPost, reqURL, bodyStr)
+		p.applySigning(httpReq, method, reqURL, bodyStr)
 	}
 
 	httpResp, err := p.client.Do(httpReq)
 	if err != nil {
-		return nil, fmt.Errorf("http post %s: %w", tool.Name, err)
+		return nil, fmt.Errorf("http %s %s: %w", method, tool.Name, err)
 	}
 	defer httpResp.Body.Close()
 
@@ -345,6 +346,10 @@ func (p *HTTPProvider) buildBody(tmpl string, args map[string]any) (string, erro
 		replacement := p.encodeValue(val)
 		result = strings.ReplaceAll(result, placeholder, replacement)
 	}
+
+	// Replace any remaining unresolved placeholders with null
+	re := regexp.MustCompile(`\{\{\.\w+\}\}`)
+	result = re.ReplaceAllString(result, "null")
 
 	// Validate the result is valid JSON
 	var tmp any

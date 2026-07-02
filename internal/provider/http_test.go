@@ -1,6 +1,9 @@
 package provider
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"runtime"
 	"strings"
@@ -244,5 +247,102 @@ func TestCallToolNotFound(t *testing.T) {
 	_, err := p.CallTool(nil, "missing", nil)
 	if err == nil || !strings.Contains(err.Error(), "not found") {
 		t.Errorf("expected 'not found' error, got %v", err)
+	}
+}
+
+func TestCallWithBodyMethod(t *testing.T) {
+	methodSeen := ""
+	bodySeen := ""
+	contentTypeSeen := ""
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		methodSeen = r.Method
+		contentTypeSeen = r.Header.Get("Content-Type")
+		buf := make([]byte, 1024)
+		n, _ := r.Body.Read(buf)
+		bodySeen = string(buf[:n])
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"id":1,"status":"ok"}`))
+	}))
+	defer srv.Close()
+
+	p := &HTTPProvider{
+		client: srv.Client(),
+		baseURL: srv.URL,
+		name:    "test",
+		tools:   []ToolDef{{
+			Name:         "create",
+			Method:       "POST",
+			Path:         "/api/prompt",
+			BodyTemplate: `{"content":"{{.content}}"}`,
+		}},
+	}
+	args := map[string]any{"content": "hello world"}
+	result, err := p.CallTool(context.Background(), "create", args)
+	if err != nil {
+		t.Fatalf("callWithBody POST failed: %v", err)
+	}
+	if methodSeen != "POST" {
+		t.Errorf("expected POST, got %s", methodSeen)
+	}
+	if contentTypeSeen != "application/json" {
+		t.Errorf("expected Content-Type application/json, got %q", contentTypeSeen)
+	}
+	if !strings.Contains(bodySeen, "hello world") {
+		t.Errorf("body should contain hello world, got %q", bodySeen)
+	}
+	if result == nil || len(result.Content) == 0 {
+		t.Fatal("expected non-empty result")
+	}
+
+	// Test PATCH
+	methodSeen = ""
+	patchTool := &ToolDef{
+		Name:         "update",
+		Method:       "PATCH",
+		Path:         "/api/prompt/{{.id}}",
+		BodyTemplate: `{"content":"{{.content}}"}`,
+	}
+	p.tools = []ToolDef{*patchTool}
+	result2, err := p.CallTool(context.Background(), "update", map[string]any{"id": "42", "content": "updated"})
+	if err != nil {
+		t.Fatalf("callWithBody PATCH failed: %v", err)
+	}
+	if methodSeen != "PATCH" {
+		t.Errorf("expected PATCH, got %s", methodSeen)
+	}
+	if !strings.Contains(bodySeen, "updated") {
+		t.Errorf("PATCH body should contain 'updated', got %q", bodySeen)
+	}
+	if result2 == nil {
+		t.Fatal("expected non-nil result")
+	}
+}
+
+func TestCallWithQueryParamsMethod(t *testing.T) {
+	methodSeen := ""
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		methodSeen = r.Method
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"ok":true}`))
+	}))
+	defer srv.Close()
+
+	// Test DELETE
+	p := &HTTPProvider{
+		client: srv.Client(),
+		baseURL: srv.URL,
+		name:    "test",
+		tools:   []ToolDef{{
+			Name:   "delete",
+			Method: "DELETE",
+			Path:   "/api/prompt/{{.id}}",
+		}},
+	}
+	_, err := p.CallTool(context.Background(), "delete", map[string]any{"id": "99"})
+	if err != nil {
+		t.Fatalf("DELETE call failed: %v", err)
+	}
+	if methodSeen != "DELETE" {
+		t.Errorf("expected DELETE, got %s", methodSeen)
 	}
 }
